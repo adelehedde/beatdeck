@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Test gravure — toutes les cellules</title>
+    <style>
+      body { background: #0b0614; color: #f4eaff; font-family: system-ui; }
+      .row { display: flex; align-items: center; gap: 12px; margin: 4px 0; }
+      .row span { width: 220px; font-size: 13px; }
+      canvas { background: #1a0c33; }
+    </style>
+  </head>
+  <body>
+    <div id="out"></div>
+    <script src="../vendor/vexflow-bravura.js"></script>
+    <script type="module">
+      import { FIGURES } from '../js/rhythm.js';
+      import { engraveMeasure, fontsReady } from '../js/notation.js';
+      await fontsReady();
+      const out = document.getElementById('out');
+      VexFlow.getMusicFont?.();
+      for (const fig of Object.values(FIGURES)) {
+        // Une mesure de 4 temps remplie avec la figure (complétée par des soupirs).
+        const blocs = [];
+        let beat = 0;
+        while (beat + fig.beats <= 4) { blocs.push({ fig, startBeat: beat, noteIds: fig.items.filter((i) => !i.rest).map((_, k) => k) }); beat += fig.beats; }
+        while (beat < 4) { blocs.push({ fig: FIGURES.soupir, startBeat: beat, noteIds: [] }); beat++; }
+        const m = { sig: 4, blocs, countIn: false };
+        const { canvas, heads } = engraveMeasure(m, { width: 520, height: 110, scale: 1.6, dpr: 2, colorOf: () => '#f4eaff' });
+        canvas.style.width = '520px';
+        canvas.style.height = '110px';
+        const g = canvas.getContext('2d');
+        g.setTransform(2, 0, 0, 2, 0, 0);
+        g.strokeStyle = '#ff3df2';
+        for (let b = 0; b <= 4; b++) { g.beginPath(); g.moveTo(b * 130, 0); g.lineTo(b * 130, 110); g.stroke(); }
+        g.fillStyle = '#38e1ff';
+        for (const h of heads) { g.beginPath(); g.arc(h.x, h.y + 18, 2, 0, 7); g.fill(); }
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.innerHTML = `<span>${fig.id} — ${fig.name}</span>`;
+        row.appendChild(canvas);
+        out.appendChild(row);
+      }
+      document.title = 'ok';
+    </script>
+  </body>
+</html>

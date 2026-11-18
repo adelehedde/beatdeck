@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Beat Deck</title>
+    <meta name="description" content="Beat Deck : quatre cartes rythmiques posées sur la table, une par temps, qui tournent en boucle et changent au fil du jeu. Joue-les sur ton instrument." />
+    <meta name="theme-color" content="#181212" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect x=%2218%22 y=%228%22 width=%2264%22 height=%2284%22 rx=%228%22 fill=%22%23e05a7c%22/%3E%3Cellipse cx=%2244%22 cy=%2268%22 rx=%2213%22 ry=%229%22 fill=%22%231c1414%22 transform=%22rotate(-20 44 68)%22/%3E%3Crect x=%2254%22 y=%2224%22 width=%225%22 height=%2244%22 fill=%22%231c1414%22/%3E%3C/svg%3E" />
+    <link rel="preload" href="assets/fonts/caveat-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <canvas id="stage"></canvas>
+
+    <header id="hud" hidden>
+      <div class="hud-text">
+        <strong id="hud-title"></strong>
+        <span id="hud-info" class="muted"></span>
+      </div>
+      <div class="hud-live">
+        <span id="hud-tempo" class="stepper">
+          <button class="small ghost" data-tempo="-5" aria-label="Ralentir de 5 BPM">−</button>
+          <output id="hud-bpm"></output>
+          <button class="small ghost" data-tempo="5" aria-label="Accélérer de 5 BPM">+</button>
+        </span>
+        <span class="stepper">
+          <button class="small ghost" data-rand="-1" aria-label="Moins d’aléatoire">−</button>
+          <output id="hud-rand"></output>
+          <button class="small ghost" data-rand="1" aria-label="Plus d’aléatoire">+</button>
+        </span>
+        <span class="stepper">
+          <button class="small ghost" data-level-step="-1" aria-label="Niveau plus facile">−</button>
+          <output id="hud-level"></output>
+          <button class="small ghost" data-level-step="1" aria-label="Niveau plus difficile">+</button>
+        </span>
+        <select id="hud-sound" aria-label="Son du guide"></select>
+      </div>
+      <div class="hud-actions">
+        <button class="chip" data-toggle="guide"></button>
+        <button class="chip" data-toggle="metronome"></button>
+        <button class="chip" data-toggle="backing"></button>
+        <button id="btn-pause" class="small" aria-label="Pause (espace)">❚❚</button>
+        <button id="btn-stop" class="small ghost">Stop</button>
+      </div>
+    </header>
+
+    <section id="menu" class="screen">
+      <h1 class="logo">Beat Deck</h1>
+      <p class="tagline">Quatre cartes, quatre temps. Joue-les sur ton instrument.</p>
+      <button id="btn-play" class="play">Jouer</button>
+      <div class="row">
+        <button id="btn-guide" class="ghost">Comprendre les notes</button>
+        <button id="btn-settings" class="ghost">Réglages</button>
+        <button id="btn-howto" class="ghost">Comment ça marche</button>
+      </div>
+      <p id="menu-stats" class="muted"></p>
+    </section>
+
+    <section id="setup" class="screen">
+      <div class="panel">
+        <h2>Nouvelle partie</h2>
+        <p class="muted center">Quatre cartes, une par temps, tournent en boucle. Une carte peut être remplacée juste après avoir été jouée : tu as 3 temps pour la lire. De nouvelles cartes arrivent au fil des boucles. Aléatoire, niveau et tempo se règlent aussi en pleine partie.</p>
+        <form id="setup-form" onsubmit="return false">
+          <label>Niveau <select name="difficulty"></select></label>
+          <label>Aléatoire <select name="randomness"></select></label>
+          <label><span><span id="setup-bpm-label">Tempo</span> : <output id="setup-bpm"></output> BPM</span>
+            <span class="inline">
+              <button type="button" class="ghost small" data-bpm-step="-5">−5</button>
+              <input type="range" name="bpm" min="40" max="240" step="1" />
+              <button type="button" class="ghost small" data-bpm-step="5">+5</button>
+            </span>
+          </label>
+        </form>
+        <div class="row">
+          <button id="btn-start">Distribuer les cartes</button>
+          <button class="back ghost">Retour</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="settings" class="screen">
+      <div class="panel">
+        <h2>Réglages</h2>
+        <form id="settings-form" onsubmit="return false">
+          <label>Son du guide
+            <span class="inline"><select name="guideSound"></select><button type="button" data-test="guide" class="ghost small">Écouter</button></span>
+          </label>
+          <label>Son du métronome
+            <span class="inline"><select name="clickSound"></select><button type="button" data-test="click" class="ghost small">Écouter</button></span>
+          </label>
+          <label class="check"><input type="checkbox" name="guide" /> Guide : entendre le rythme à jouer</label>
+          <label class="check"><input type="checkbox" name="metronome" /> Métronome</label>
+          <label class="check"><input type="checkbox" name="backing" /> Batterie en Madness</label>
+          <label class="check"><input type="checkbox" name="counting" /> Comptage en bas des cartes (1 e &amp; a)</label>
+          <label><span>Synchro son / image <output data-for="offset"></output></span>
+            <input type="range" name="offset" min="-200" max="200" step="5" />
+            <small class="muted">Si la carte s’allume après le son, augmente la valeur. Avec un casque Bluetooth, c’est souvent +100 à +200 ms.</small>
+          </label>
+          <label><span>Volume <output data-for="volume"></output></span><input type="range" name="volume" min="0" max="1" step="0.05" /></label>
+        </form>
+        <button class="back">Retour</button>
+      </div>
+    </section>
+
+    <section id="guide" class="screen">
+      <div class="panel wide guide">
+        <h2>Comprendre les notes</h2>
+        <div id="guide-body"></div>
+        <button class="back">Retour</button>
+      </div>
+    </section>
+
+    <section id="howto" class="screen">
+      <div class="panel">
+        <h2>Comment ça marche</h2>
+        <p>Beat Deck est fait pour les <strong>musiciens</strong> : quatre cartes rythmiques sont posées sur la table, une par temps, et tu les joues sur ton instrument (ou en frappant dans tes mains).</p>
+        <p>Les cartes tournent en boucle sans fin. La carte en cours devient rose. Une carte peut être remplacée <strong>juste après avoir été jouée</strong> : elle se retourne, et tu as 3 temps pour la lire avant qu’elle revienne.</p>
+        <p>Une nouvelle cellule arrive toutes les 4 boucles, jusqu’à couvrir le niveau choisi. Règle en pleine partie l’<strong>aléatoire</strong> (de « fixe » à « chaos »), le <strong>niveau</strong> et le <strong>tempo</strong> (il s’applique à la boucle suivante).</p>
+        <p><strong>Madness</strong> : toutes les cellules, +2 BPM à chaque boucle, une batterie, et des pièges annoncés (carte effacée juste avant d’être jouée, cartes face cachée, table qui tremble). Arrête quand tu décroches : ton record est le tempo atteint.</p>
+        <p>Pendant la partie : <kbd>Espace</kbd> pour pause, <kbd>Échap</kbd> pour arrêter, <kbd>↑</kbd> <kbd>↓</kbd> pour le tempo. Les boutons du haut coupent le guide, le clic ou la batterie.</p>
+        <p class="muted small-print">Sons : Salamander Drumkit (CC-BY-SA 3.0) et tonejs-instruments (CC-BY 3.0). Gravure : VexFlow (MIT). Police : Caveat (OFL). Détails dans CREDITS.md.</p>
+        <button class="back">Retour</button>
+      </div>
+    </section>
+
+    <section id="results" class="screen">
+      <div class="panel">
+        <h2 id="res-title"></h2>
+        <div id="res-body" class="center"></div>
+        <div id="res-actions" class="row"></div>
+      </div>
+    </section>
+
+    <script src="vendor/vexflow-bravura.js"></script>
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>
