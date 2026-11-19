@@ -1,5 +1,7 @@
 # Crédits
 
+Le code de Beat Deck est sous licence MIT (voir [LICENSE](LICENSE)). Les ressources tierces ci-dessous gardent leur propre licence.
+
 ## Sons (`assets/samples/`)
 
 Les échantillons ont été convertis en WAV mono, recalés sur l'attaque, raccourcis avec un fondu de sortie et normalisés.
@@ -9,7 +11,7 @@ Les échantillons ont été convertis en WAV mono, recalés sur l'attaque, racco
 
 ## Gravure musicale (`vendor/`)
 
-- [VexFlow](https://github.com/vexflow/vexflow) 5.0.0, build `vexflow-bravura.js`, licence MIT (voir `vendor/VEXFLOW-LICENSE`). Il embarque la police [Bravura](https://github.com/steinbergmedia/bravura) (SIL Open Font License).
+- [VexFlow](https://github.com/vexflow/vexflow) 5.0.0, build `vexflow-bravura.js`, licence MIT (voir `vendor/VEXFLOW-LICENSE`). Il embarque la police [Bravura](https://github.com/steinbergmedia/bravura) de Steinberg, licence SIL Open Font License 1.1 (voir `vendor/BRAVURA-OFL.txt`).
 
 ## Police (`assets/fonts/`)
 

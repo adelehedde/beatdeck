@@ -1,5 +1,7 @@
 // Beat Deck — rythmes : figures de notation, niveaux, et génération de la boucle de 4 cartes.
 
+import { t } from './i18n.js';
+
 export function mulberry32(seed) {
   let a = seed >>> 0;
   return function rand() {
@@ -17,43 +19,46 @@ export function mulberry32(seed) {
 const N = (d, extra = {}) => ({ d, ...extra });
 const R = (d) => ({ d, rest: true });
 
-function figure(name, items, extra = {}) {
+function figure(items, extra = {}) {
   let at = 0;
   const placed = items.map((it) => {
     const p = { ...it, at };
     at += it.d;
     return p;
   });
-  return { name, items: placed, beats: Math.round(at), ...extra };
+  return { items: placed, beats: Math.round(at), ...extra };
 }
 
 const times = (n, item) => Array.from({ length: n }, () => ({ ...item }));
 
 // Les cellules d'un temps sont celles des cartes ; les valeurs longues servent à « Comprendre les notes ».
 export const FIGURES = {
-  ronde: figure('Ronde', [N(4)]),
-  pause: figure('Pause', [R(4)]),
-  blanchePointee: figure('Blanche pointée', [N(3, { dot: true })]),
-  blanche: figure('Blanche', [N(2)]),
-  demiPause: figure('Demi-pause', [R(2)]),
-  noire: figure('Noire', [N(1)]),
-  soupir: figure('Soupir', [R(1)]),
-  croches: figure('2 croches', [N(0.5), N(0.5)]),
-  crocheDemi: figure('Croche, ½ soupir', [N(0.5), R(0.5)]),
-  contretemps: figure('Contretemps', [R(0.5), N(0.5)]),
-  noirePointee: figure('Noire pointée, croche', [N(1.5, { dot: true }), N(0.5)]),
-  syncopeLongue: figure('Syncope', [N(0.5), N(1), N(0.5)]),
-  quatreDoubles: figure('4 doubles', times(4, N(0.25))),
-  crocheDoubles: figure('Croche, 2 doubles', [N(0.5), N(0.25), N(0.25)]),
-  doublesCroche: figure('2 doubles, croche', [N(0.25), N(0.25), N(0.5)]),
-  pointee: figure('Croche pointée, double', [N(0.75, { dot: true }), N(0.25)]),
-  lombard: figure('Double, croche pointée', [N(0.25), N(0.75, { dot: true })]),
-  syncope: figure('Double, croche, double', [N(0.25), N(0.5), N(0.25)]),
-  quartSoupir: figure('¼ soupir, 3 doubles', [R(0.25), N(0.25), N(0.25), N(0.25)]),
-  doublesContre: figure('Doubles à contretemps', [R(0.25), N(0.25), R(0.25), N(0.25)]),
-  triolet: figure('Triolet', times(3, N(1 / 3)), { tuplet: 3 }),
+  ronde: figure([N(4)]),
+  pause: figure([R(4)]),
+  blanchePointee: figure([N(3, { dot: true })]),
+  blanche: figure([N(2)]),
+  demiPause: figure([R(2)]),
+  noire: figure([N(1)]),
+  soupir: figure([R(1)]),
+  croches: figure([N(0.5), N(0.5)]),
+  crocheDemi: figure([N(0.5), R(0.5)]),
+  contretemps: figure([R(0.5), N(0.5)]),
+  noirePointee: figure([N(1.5, { dot: true }), N(0.5)]),
+  syncopeLongue: figure([N(0.5), N(1), N(0.5)]),
+  quatreDoubles: figure(times(4, N(0.25))),
+  crocheDoubles: figure([N(0.5), N(0.25), N(0.25)]),
+  doublesCroche: figure([N(0.25), N(0.25), N(0.5)]),
+  pointee: figure([N(0.75, { dot: true }), N(0.25)]),
+  lombard: figure([N(0.25), N(0.75, { dot: true })]),
+  syncope: figure([N(0.25), N(0.5), N(0.25)]),
+  quartSoupir: figure([R(0.25), N(0.25), N(0.25), N(0.25)]),
+  doublesContre: figure([R(0.25), N(0.25), R(0.25), N(0.25)]),
+  triolet: figure(times(3, N(1 / 3)), { tuplet: 3 }),
 };
-for (const [id, f] of Object.entries(FIGURES)) f.id = id;
+for (const [id, f] of Object.entries(FIGURES)) {
+  f.id = id;
+  f.name = t(`fig.${id}`);
+}
 
 export const hasNotes = (f) => f.items.some((i) => !i.rest);
 
@@ -71,26 +76,26 @@ export const CELL_ORDER = [
 ];
 
 export const LEVELS = [
-  { id: 'facile', name: 'Facile', desc: 'noires, croches, soupirs, contretemps', base: 'noire', unlocked: 2, max: 5 },
-  { id: 'moyen', name: 'Moyen', desc: '+ doubles croches', base: 'croches', unlocked: 4, max: 8 },
-  { id: 'difficile', name: 'Difficile', desc: '+ rythmes pointés, syncopes, triolets', base: 'croches', unlocked: 7, max: 14 },
-  { id: 'madness', name: 'Madness', desc: 'tout, +2 BPM à chaque boucle, et des pièges', base: 'croches', unlocked: 4, max: 14, madness: true },
+  { id: 'facile', name: t('level.facile'), desc: t('level.facile.desc'), base: 'noire', unlocked: 2, max: 5 },
+  { id: 'moyen', name: t('level.moyen'), desc: t('level.moyen.desc'), base: 'croches', unlocked: 4, max: 8 },
+  { id: 'difficile', name: t('level.difficile'), desc: t('level.difficile.desc'), base: 'croches', unlocked: 7, max: 14 },
+  { id: 'madness', name: t('level.madness'), desc: t('level.madness.desc'), base: 'croches', unlocked: 4, max: 14, madness: true },
 ];
 
 // Part d'aléatoire : nombre moyen de cartes remplacées par boucle.
 export const RANDOMNESS = [
-  { name: 'Fixe', rate: 0 },
-  { name: 'Calme', rate: 0.5 },
-  { name: 'Normal', rate: 1 },
-  { name: 'Vif', rate: 2 },
-  { name: 'Chaos', rate: 4 },
+  { name: t('rand.0'), rate: 0 },
+  { name: t('rand.1'), rate: 0.5 },
+  { name: t('rand.2'), rate: 1 },
+  { name: t('rand.3'), rate: 2 },
+  { name: t('rand.4'), rate: 4 },
 ];
 
 // Pièges de Madness, annoncés une boucle à l'avance.
 export const EFFECTS = {
-  fade: { label: 'Fondu', hint: 'chaque carte s’efface juste avant d’être jouée : retiens-la' },
-  blind: { label: 'Face cachée', hint: 'les cartes ne se dévoilent qu’au dernier moment' },
-  shake: { label: 'Séisme', hint: 'la table tremble' },
+  fade: { label: t('effect.fade'), hint: t('effect.fade.hint') },
+  blind: { label: t('effect.blind'), hint: t('effect.blind.hint') },
+  shake: { label: t('effect.shake'), hint: t('effect.shake.hint') },
 };
 
 export class DeckGen {
@@ -194,7 +199,7 @@ export class DeckGen {
     });
     if (next.every((f) => !hasNotes(f))) next[places[0] ?? 0] = FIGURES[lvl.base];
     this.cards = next;
-    m.info = fresh ? `Nouvelle carte : ${fresh.name.toLowerCase()}` : '';
+    m.info = fresh ? t('table.newCard', { name: fresh.name.toLowerCase() }) : '';
     if (lvl.madness && i >= 6 && this.rng() < Math.min(0.5, 0.15 + (i - 6) * 0.02)) {
       const keys = Object.keys(EFFECTS);
       m.effect = keys[Math.floor(this.rng() * keys.length)];

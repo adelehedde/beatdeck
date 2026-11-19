@@ -2,6 +2,7 @@
 
 import { EFFECTS, countSyllable } from './rhythm.js';
 import { engraveMeasure } from './notation.js';
+import { t } from './i18n.js';
 
 // Palette « Table & papier » (voir aussi les variables CSS).
 const ROOM = '#181212';
@@ -133,14 +134,14 @@ export class Renderer {
       const b = clamp(Math.floor((now - m.start) / m.beat), 0, m.sig - 1);
       g.fillStyle = ROSE;
       g.font = `700 46px ${HAND}`;
-      g.fillText(b === m.sig - 1 ? 'Go !' : String(b + 1), W / 2, y0 - pad - 16);
+      g.fillText(b === m.sig - 1 ? t('table.go') : String(b + 1), W / 2, y0 - pad - 16);
     } else if (m.info || next?.info) {
       g.fillStyle = CREAM;
       g.font = `700 26px ${HAND}`;
       g.fillText(m.info || next.info, W / 2, y0 - pad - 18);
     }
 
-    const t = performance.now();
+    const clock = performance.now();
     for (let b = 0; b < 4; b++) {
       const t0 = m.start + b * m.beat;
       const played = !m.countIn && now >= t0 + m.beat;
@@ -150,8 +151,8 @@ export class Renderer {
       const fig = src?.blocs[b]?.fig;
       if (!fig) continue;
       const st = (this.cardState[b] ||= { fig, prev: null, at: 0 });
-      if (st.fig !== fig) Object.assign(st, { prev: st.fig, fig, at: t });
-      const k = clamp((t - st.at) / 280, 0, 1); // retournement
+      if (st.fig !== fig) Object.assign(st, { prev: st.fig, fig, at: clock });
+      const k = clamp((clock - st.at) / 280, 0, 1); // retournement
       const showPrev = k < 0.5 && st.prev;
       const sx = Math.abs(Math.cos(k * Math.PI)) || 0.02;
 
@@ -208,7 +209,7 @@ export class Renderer {
     const next = session.measures[session.cmIdx + 1];
     let text = null;
     if (next?.effect && now > next.start - next.beat * next.sig) {
-      if (Math.floor(now * 4) % 2 === 0) text = `${EFFECTS[next.effect].label} ! ${EFFECTS[next.effect].hint}`;
+      if (Math.floor(now * 4) % 2 === 0) text = t('effect.banner', EFFECTS[next.effect]);
     } else if (m.effect) text = EFFECTS[m.effect].label;
     if (!text) return;
     g.fillStyle = ROSE;

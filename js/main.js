@@ -6,6 +6,10 @@ import { Renderer } from './render.js';
 import { LEVELS, RANDOMNESS } from './rhythm.js';
 import { fontsReady } from './notation.js';
 import { renderGuide } from './guide.js';
+import { t, lang, applyPage, switchLang } from './i18n.js';
+
+applyPage();
+document.documentElement.classList.remove('i18n-pending');
 
 const DEFAULTS = {
   guideSound: 'snare',
@@ -65,11 +69,8 @@ const tempoKey = (difficulty) => LEVELS[difficulty].id;
 
 // ---------- Préparation : niveau, aléatoire, tempo ----------
 const setupForm = $('#setup-form');
-setupForm.elements.difficulty.innerHTML = LEVELS.map((d, i) => `<option value="${i}">${d.name} : ${d.desc}</option>`).join('');
-setupForm.elements.randomness.innerHTML = RANDOMNESS.map(
-  (r, i) =>
-    `<option value="${i}">${r.name}${r.rate ? ` : ${r.rate < 1 ? '1 carte toutes les 2 boucles' : `${r.rate} carte${r.rate > 1 ? 's' : ''} par boucle`}` : ' : les cartes ne changent pas'}</option>`,
-).join('');
+setupForm.elements.difficulty.innerHTML = LEVELS.map((d, i) => `<option value="${i}">${t('setup.levelOption', d)}</option>`).join('');
+setupForm.elements.randomness.innerHTML = RANDOMNESS.map((r, i) => `<option value="${i}">${t('setup.randOption', r)}</option>`).join('');
 
 function prepare() {
   const { difficulty, randomness } = store.play;
@@ -83,7 +84,7 @@ function prepare() {
 
 function syncSetup() {
   $('#setup-bpm').textContent = pending.bpm;
-  $('#setup-bpm-label').textContent = LEVELS[pending.difficulty].madness ? 'Tempo de départ' : 'Tempo';
+  $('#setup-bpm-label').textContent = t(LEVELS[pending.difficulty].madness ? 'setup.startTempo' : 'setup.tempo');
 }
 
 setupForm.addEventListener('input', () => {
@@ -116,17 +117,17 @@ async function start(ex) {
   pending = ex;
   const btn = $('#btn-start');
   btn.disabled = true;
-  btn.textContent = 'Chargement des sons…';
+  btn.textContent = t('setup.loading');
   try {
     await Promise.all([audio.ready(), fonts]);
   } catch (err) {
-    btn.textContent = 'Les sons n’ont pas pu être chargés. Réessaie.';
+    btn.textContent = t('setup.loadError');
     console.error(err);
     return;
   } finally {
     btn.disabled = false;
   }
-  btn.textContent = 'Distribuer les cartes';
+  btn.textContent = t('setup.start');
   session = new Session({ audio, settings, ex });
   session.start();
   resultsShown = false;
@@ -154,7 +155,7 @@ function frame() {
     renderer.top = $('#hud').offsetHeight + 8;
     renderer.draw(session, settings);
     const m = session.measures[session.cmIdx];
-    const info = m.countIn ? 'on y va…' : `boucle ${m.index}`;
+    const info = m.countIn ? t('hud.countIn') : t('hud.loop', { n: m.index });
     if (info !== lastInfo) {
       $('#hud-info').textContent = lastInfo = info;
       updateHudTempo();
@@ -188,7 +189,7 @@ function updateHud() {
   if (!session) return;
   $('#hud-title').textContent = `Beat Deck · ${session.level.name}`;
   $('#hud-tempo').hidden = session.madness; // en Madness, le tempo monte tout seul
-  $('#btn-stop').textContent = session.madness ? 'J’ai décroché' : 'Stop';
+  $('#btn-stop').textContent = t(session.madness ? 'hud.gaveUp' : 'hud.stop');
   $('#hud-rand').textContent = RANDOMNESS[session.ex.randomness].name;
   $('#hud-level').textContent = session.level.name;
   syncToggles();
@@ -232,7 +233,6 @@ $('#hud-sound').addEventListener('change', (e) => {
   e.target.blur(); // rend la main aux raccourcis clavier
 });
 
-const TOGGLES = { guide: 'Guide', metronome: 'Clic', backing: 'Batterie' };
 function syncToggles() {
   document.querySelectorAll('[data-toggle]').forEach((b) => {
     const k = b.dataset.toggle;
@@ -241,7 +241,7 @@ function syncToggles() {
   });
 }
 document.querySelectorAll('[data-toggle]').forEach((b) => {
-  b.textContent = TOGGLES[b.dataset.toggle];
+  b.textContent = t(`toggle.${b.dataset.toggle}`);
   b.addEventListener('click', () => {
     settings[b.dataset.toggle] = !settings[b.dataset.toggle];
     save('settings');
@@ -257,22 +257,22 @@ function showResults(r) {
   const ex = r.ex;
   let title;
   let body;
-  const actions = [['Rejouer', 'retry']];
+  const actions = [[t('res.retry'), 'retry']];
   if (r.madness) {
     const record = r.reachedBpm > (store.stats.madnessBpm || 0);
     if (record) {
       store.stats.madnessBpm = r.reachedBpm;
       save('stats');
     }
-    title = `Tenu jusqu’à ${r.reachedBpm} BPM`;
-    body = `<p>${r.loops} boucle${r.loops > 1 ? 's' : ''} en Madness.</p><p class="${record ? 'record' : 'muted'}">${record ? 'Nouveau record !' : `Record : ${store.stats.madnessBpm} BPM`}</p>`;
-    actions.push(['Partager', 'share']);
+    title = t('res.madnessTitle', { bpm: r.reachedBpm });
+    body = `<p>${t('res.madnessLoops', { n: r.loops })}</p><p class="${record ? 'record' : 'muted'}">${record ? t('res.newRecord') : t('res.record', { bpm: store.stats.madnessBpm })}</p>`;
+    actions.push([t('res.share'), 'share']);
   } else {
-    title = 'Bien joué !';
-    body = `<p>${r.loops} boucle${r.loops > 1 ? 's' : ''} à ${r.reachedBpm} BPM, niveau ${LEVELS[ex.difficulty].name}.</p>`;
-    actions.push([`Rejouer à ${clampBpm(ex.bpm + 5)} BPM`, 'faster']);
+    title = t('res.title');
+    body = `<p>${t('res.summary', { n: r.loops, bpm: r.reachedBpm, level: LEVELS[ex.difficulty].name })}</p>`;
+    actions.push([t('res.faster', { bpm: clampBpm(ex.bpm + 5) }), 'faster']);
   }
-  actions.push(['Menu', 'menu']);
+  actions.push([t('res.menu'), 'menu']);
 
   $('#res-title').textContent = title;
   $('#res-body').innerHTML = body;
@@ -286,12 +286,12 @@ function showResults(r) {
       else if (act === 'faster') start({ ...ex, bpm: clampBpm(ex.bpm + 5) });
       else if (act === 'menu') goMenu();
       else if (act === 'share') {
-        const text = `Beat Deck, niveau Madness : j’ai tenu jusqu’à ${r.reachedBpm} BPM. Tu fais mieux ?\n${location.href}`;
+        const text = t('res.shareText', { bpm: r.reachedBpm, url: location.href });
         try {
           if (navigator.share) await navigator.share({ text });
           else {
             await navigator.clipboard.writeText(text);
-            b.textContent = 'Copié !';
+            b.textContent = t('res.copied');
           }
         } catch {
           /* partage annulé */
@@ -310,7 +310,7 @@ function goMenu() {
 
 function renderMenuStats() {
   const s = store.stats;
-  $('#menu-stats').textContent = s.madnessBpm ? `Record en Madness : ${s.madnessBpm} BPM` : '';
+  $('#menu-stats').textContent = s.madnessBpm ? t('menu.record', { bpm: s.madnessBpm }) : '';
 }
 
 // ---------- Réglages ----------
@@ -319,7 +319,7 @@ form.elements.guideSound.innerHTML = options(GUIDE_SOUNDS);
 form.elements.clickSound.innerHTML = options(CLICK_SOUNDS);
 const FORMATS = {
   offset: (v) => `${v > 0 ? '+' : ''}${v} ms`,
-  volume: (v) => `${Math.round(v * 100)} %`,
+  volume: (v) => t('format.percent', { v: Math.round(v * 100) }),
 };
 function syncSettingsForm() {
   for (const [k, v] of Object.entries(settings)) {
@@ -343,10 +343,10 @@ form.addEventListener('input', () => {
 document.querySelectorAll('[data-test]').forEach((b) =>
   b.addEventListener('click', async () => {
     await audio.ready();
-    const t = audio.ctx.currentTime + 0.05;
+    const t0 = audio.ctx.currentTime + 0.05;
     const beat = 0.45;
-    if (b.dataset.test === 'guide') [0, 1, 1.5, 2, 2.5, 3].forEach((p) => audio.guide(settings.guideSound, t + p * beat, { dur: (p % 1 || p === 1 ? 0.5 : 1) * beat }));
-    else [0, 1, 2, 3].forEach((p) => audio.click(settings.clickSound, t + p * beat, p === 0, false));
+    if (b.dataset.test === 'guide') [0, 1, 1.5, 2, 2.5, 3].forEach((p) => audio.guide(settings.guideSound, t0 + p * beat, { dur: (p % 1 || p === 1 ? 0.5 : 1) * beat }));
+    else [0, 1, 2, 3].forEach((p) => audio.click(settings.clickSound, t0 + p * beat, p === 0, false));
   }),
 );
 
@@ -354,12 +354,34 @@ document.querySelectorAll('[data-test]').forEach((b) =>
 $('#btn-play').addEventListener('click', prepare);
 $('#btn-settings').addEventListener('click', () => show('settings'));
 $('#btn-howto').addEventListener('click', () => show('howto'));
-document.querySelectorAll('.back').forEach((b) =>
-  b.addEventListener('click', () => {
-    renderMenuStats();
-    show(b.dataset.back || 'menu');
+function back(to = 'menu') {
+  renderMenuStats();
+  show(to);
+}
+document.querySelectorAll('.back').forEach((b) => b.addEventListener('click', () => back(b.dataset.back)));
+
+// Fenêtres : un clic à côté du panneau, ou Échap, ferme comme « Retour » (les résultats ramènent au menu).
+const visibleModal = () => document.querySelector('.screen.modal.visible');
+document.querySelectorAll('.screen.modal').forEach((screen) =>
+  screen.addEventListener('click', (e) => {
+    if (e.target === screen) closeModal(screen);
   }),
 );
+window.addEventListener('keydown', (e) => {
+  const screen = visibleModal();
+  if (e.code === 'Escape' && screen) closeModal(screen);
+});
+function closeModal(screen) {
+  if (screen.id === 'results') goMenu();
+  else back();
+}
+
+// Langue : le bouton propose l'autre langue, dans cette langue.
+const langBtn = $('#btn-lang');
+langBtn.textContent = t('lang.switch');
+langBtn.lang = lang === 'fr' ? 'en' : 'fr';
+langBtn.setAttribute('aria-label', t('lang.switchLabel'));
+langBtn.addEventListener('click', switchLang);
 
 // « Comprendre les notes » : les bases théoriques, avec des exemples gravés.
 let guideBuilt = false;

@@ -1,3 +1,5 @@
+import { t as tr } from './i18n.js'; // « t » désigne l'instant audio dans ce fichier
+
 // Moteur audio : lecteur d'échantillons enregistrés (batterie Salamander, guitare folk), voir CREDITS.md.
 
 const SAMPLES = {
@@ -13,10 +15,10 @@ const SAMPLES = {
 };
 
 export const GUIDE_SOUNDS = {
-  snare: 'Caisse claire',
-  metal: 'Guitare saturée (mi grave étouffé)',
-  guitar: 'Guitare folk (la grave)',
-  stick: 'Rim-click',
+  snare: tr('sound.snare'),
+  metal: tr('sound.metal'),
+  guitar: tr('sound.guitar'),
+  stick: tr('sound.stick'),
 };
 
 // Courbe de saturation douce (type ampli à lampes), symétrique.
@@ -31,8 +33,8 @@ function driveCurve(amount) {
 }
 
 export const CLICK_SOUNDS = {
-  hatfoot: 'Charleston au pied',
-  stick: 'Rim-click',
+  hatfoot: tr('sound.hatfoot'),
+  stick: tr('sound.stick'),
 };
 
 export class AudioEngine {

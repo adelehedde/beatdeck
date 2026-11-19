@@ -79,13 +79,27 @@ body {
   display: flex;
 }
 
-#setup.visible,
-#results.visible,
-#settings.visible,
-#howto.visible,
-#guide.visible {
+/* Textes posés par js/i18n.js : rien n'apparaît avant (pas d'éclair dans la mauvaise langue). */
+.i18n-pending body {
+  visibility: hidden;
+}
+
+/* Fenêtres : un clic sur le fond (hors panneau) les ferme. */
+.screen.modal.visible {
   background: rgba(12, 8, 8, 0.55);
   backdrop-filter: blur(3px);
+  cursor: pointer;
+}
+
+.screen.modal .panel {
+  cursor: auto;
+}
+
+/* Bouton de langue, en haut à droite du menu. */
+.lang-switch {
+  position: absolute;
+  top: max(16px, env(safe-area-inset-top));
+  right: max(16px, env(safe-area-inset-right));
 }
 
 /* ---------- Menu ---------- */
@@ -293,6 +307,16 @@ kbd {
 
 .small-print {
   font-size: 12px;
+}
+
+.small-print a {
+  color: inherit;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 #res-body {
