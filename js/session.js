@@ -171,7 +171,7 @@ export class Session {
   resume() {
     if (!this.paused) return;
     this.paused = false;
-    this.audio.ctx.resume();
+    this.audio.ensure(); // reprend l'horloge audio (et la session « playback » sur iPhone)
   }
 
   // Arrêt : le décompte et la boucle en cours ne comptent pas comme jouées.

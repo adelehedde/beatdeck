@@ -37,6 +37,27 @@ export const CLICK_SOUNDS = {
   stick: tr('sound.stick'),
 };
 
+// Une seconde de silence en WAV (8 kHz, 8 bits, mono), pour le contournement du mode silencieux.
+function silentWavUrl() {
+  const n = 8000;
+  const buf = new DataView(new ArrayBuffer(44 + n));
+  const str = (o, txt) => [...txt].forEach((c, i) => buf.setUint8(o + i, c.charCodeAt(0)));
+  str(0, 'RIFF');
+  buf.setUint32(4, 36 + n, true);
+  str(8, 'WAVEfmt ');
+  buf.setUint32(16, 16, true);
+  buf.setUint16(20, 1, true); // PCM
+  buf.setUint16(22, 1, true); // mono
+  buf.setUint32(24, 8000, true);
+  buf.setUint32(28, 8000, true);
+  buf.setUint16(32, 1, true);
+  buf.setUint16(34, 8, true);
+  str(36, 'data');
+  buf.setUint32(40, n, true);
+  for (let i = 0; i < n; i++) buf.setUint8(44 + i, 128); // 128 = zéro en 8 bits
+  return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+}
+
 export class AudioEngine {
   constructor(base = 'assets/samples/') {
     this.base = base;
@@ -63,8 +84,38 @@ export class AudioEngine {
       this.amp = this.buildAmp();
       this.loading = this.load();
     }
+    this.bypassSilentMode();
     if (this.ctx.state === 'suspended') this.ctx.resume();
     return this.ctx;
+  }
+
+  // iPhone en mode silencieux : Web Audio passe par la session audio « ambient », que le
+  // bouton silencieux coupe. On demande la session « playback » (comme un lecteur de musique) :
+  // directement si Safari le permet (iOS 17+), sinon en jouant en boucle un son muet
+  // dans un élément <audio>, ce qui fait basculer la page en « playback ».
+  bypassSilentMode() {
+    if (navigator.audioSession) {
+      try {
+        navigator.audioSession.type = 'playback';
+      } catch {
+        /* type refusé : on garde le comportement par défaut */
+      }
+      return;
+    }
+    const iOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    if (!iOS) return;
+    if (!this.silence) {
+      this.silence = document.createElement('audio');
+      this.silence.src = silentWavUrl();
+      this.silence.loop = true;
+      this.silence.setAttribute('playsinline', '');
+      this.silence.setAttribute('x-webkit-airplay', 'deny');
+      // Page masquée : on lâche la session, pour ne pas occuper l'écran verrouillé.
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) this.silence.pause();
+      });
+    }
+    if (this.silence.paused) this.silence.play().catch(() => {});
   }
 
   ready() {
